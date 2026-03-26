@@ -65,14 +65,14 @@ export default function Navbar() {
               {user ? (
                 <div className="hidden md:flex items-center gap-3 ml-2 border-l border-slate-100 pl-4">
                   <div className="flex flex-col items-end leading-tight">
-                    <span className="text-sm font-bold text-slate-800">{user.name || 'Traveller'}</span>
+                    <a href="/profile" className="text-sm font-bold text-slate-800 hover:text-brand-600 transition-colors">{user.name || 'Traveller'}</a>
                     <button onClick={handleLogout} className="text-[11px] font-semibold text-brand-500 hover:underline">
                       Logout
                     </button>
                   </div>
-                  <div className="w-10 h-10 bg-brand-50 rounded-full flex items-center justify-center border border-brand-100">
+                  <a href="/profile" className="w-10 h-10 bg-brand-50 rounded-full flex items-center justify-center border border-brand-100 hover:bg-brand-100 transition-colors">
                     <UserIcon size={18} className="text-brand-600" />
-                  </div>
+                  </a>
                 </div>
               ) : (
                 <button
@@ -97,6 +97,8 @@ export default function Navbar() {
             <MobileLink href="/my-trips" label="My Trips" />
             <MobileLink href="/offers" label="Offers" />
             <MobileLink href="/help" label="Help" />
+            {user && <MobileLink href="/profile" label="My Profile" />}
+            <MobileLink href="/pages" label="Terms & Policies" />
             
             {user ? (
               <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">

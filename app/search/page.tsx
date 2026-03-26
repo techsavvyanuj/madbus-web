@@ -2,7 +2,7 @@
 
 import { useState, Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Star, Wifi, Coffee, Plug, Wind, ChevronDown, SlidersHorizontal, ArrowLeft, MapPin, Calendar, Bus, ArrowRight } from 'lucide-react'
+import { Star, ChevronDown, SlidersHorizontal, ArrowLeft, MapPin, Calendar, Bus, ArrowRight } from 'lucide-react'
 import { MOCK_BUSES } from '@/lib/data'
 import AuthModal from '@/components/AuthModal'
 import Navbar from '@/components/Navbar'
@@ -215,6 +215,18 @@ function SearchPage() {
 function BusCard({ bus, onBook }: { bus: any; onBook: () => void }) {
   const [expanded, setExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState<'amenities'|'review'|'policy'>('amenities')
+  const [reviews, setReviews] = useState<any[]>([])
+  const [reviewsLoaded, setReviewsLoaded] = useState(false)
+
+  function loadReviews() {
+    if (reviewsLoaded) return
+    fetch('/api/ratelist.php', {
+      method: 'POST',
+      body: JSON.stringify({ bus_id: String(bus.bus_id) })
+    }).then(r => r.json()).then(d => {
+      if (d.Result === 'true' && d.reviewdata) setReviews(d.reviewdata)
+    }).catch(() => {}).finally(() => setReviewsLoaded(true))
+  }
 
   const typeStr = `${bus.bus_ac == 1 ? 'AC' : 'Non-AC'} ${bus.is_sleeper == 1 ? 'Sleeper' : 'Seater'}`
   const ratingNum = parseFloat(bus.bus_rate || '0')
@@ -277,7 +289,8 @@ function BusCard({ bus, onBook }: { bus: any; onBook: () => void }) {
               {(['amenities', 'review', 'policy'] as const).map(tab => (
                 <button
                   key={tab}
-                  onClick={() => { setExpanded(true); setActiveTab(tab) }}
+                  {...(tab === 'review' ? { onMouseEnter: loadReviews } : {})}
+                  onClick={() => { setExpanded(true); setActiveTab(tab); if (tab === 'review') loadReviews() }}
                   className={`text-xs font-bold capitalize transition-colors ${
                     expanded && activeTab === tab ? 'text-brand-600 underline underline-offset-2' : 'text-slate-400 hover:text-brand-500'
                   }`}
@@ -330,7 +343,24 @@ function BusCard({ bus, onBook }: { bus: any; onBook: () => void }) {
                         <p className="text-xs text-slate-400">{bus.total_review} verified reviews</p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-400 italic">Reviews from passengers who travelled on this bus.</p>
+                    {reviews.length > 0 ? (
+                      <div className="space-y-2 mt-3 max-h-40 overflow-y-auto">
+                        {reviews.map((r, ri) => (
+                          <div key={ri} className="bg-white rounded-lg p-3 border border-slate-100">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-semibold text-slate-700 text-xs">{r.user_title}</span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-yellow-500">{'⭐'.repeat(Math.min(5, parseInt(r.user_rate || '0')))}</span>
+                                <span className="text-[10px] text-slate-400">{r.review_date}</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-slate-500">{r.user_desc}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic mt-2">No written reviews yet. Be the first to review!</p>
+                    )}
                   </div>
                 )}
                 {activeTab === 'policy' && (

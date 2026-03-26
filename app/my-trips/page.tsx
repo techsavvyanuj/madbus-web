@@ -86,6 +86,12 @@ function TripsDashboard({ user }: { user: any }) {
   const [ticketDetail, setTicketDetail] = useState<any>(null)
   const [detailLoading, setDetailLoading] = useState(false)
 
+  // Rating
+  const [showRating, setShowRating] = useState(false)
+  const [ratingStars, setRatingStars] = useState(5)
+  const [ratingText, setRatingText] = useState('')
+  const [ratingLoading, setRatingLoading] = useState(false)
+
   useEffect(() => {
     fetchTrips(activeTab)
   }, [activeTab])
@@ -145,6 +151,26 @@ function TripsDashboard({ user }: { user: any }) {
         fetchTrips(activeTab)
         setSelectedTicket(null)
       }).catch(() => alert("Error cancelling!"))
+  }
+
+  async function rateTrip() {
+    if (!ratingText.trim()) return alert("Please write a review.")
+    setRatingLoading(true)
+    try {
+      const res = await fetch('/api/u_rate_update.php', {
+        method: 'POST',
+        body: JSON.stringify({
+          uid: user.id || "0",
+          ticket_id: String(selectedTicket.ticket_id),
+          total_rate: String(ratingStars),
+          rate_text: ratingText
+        })
+      })
+      const d = await res.json()
+      alert(d.ResponseMsg || 'Thanks for your review!')
+      setShowRating(false)
+    } catch { alert("Error submitting review.") }
+    finally { setRatingLoading(false) }
   }
 
   const formatTime = (t: string) => {
@@ -310,6 +336,57 @@ function TripsDashboard({ user }: { user: any }) {
                   )}
                 </div>
               </div>
+
+              {/* Rate Trip (Completed only) */}
+              {activeTab === 'Completed' && ticketDetail?.is_rate !== '1' && (
+                <div className="bg-yellow-50 rounded-2xl p-5 border border-yellow-200">
+                  {!showRating ? (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-bold text-slate-800">Rate this trip</h4>
+                        <p className="text-xs text-slate-500">Share your experience to help other travellers</p>
+                      </div>
+                      <button onClick={() => setShowRating(true)}
+                        className="bg-yellow-400 text-yellow-900 font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-yellow-500 transition-colors">
+                        ⭐ Rate Now
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <h4 className="font-bold text-slate-800">How was your trip?</h4>
+                      <div className="flex gap-2">
+                        {[1,2,3,4,5].map(star => (
+                          <button key={star} onClick={() => setRatingStars(star)}
+                            className={`text-3xl transition-transform hover:scale-110 ${star <= ratingStars ? '' : 'opacity-30'}`}>
+                            ⭐
+                          </button>
+                        ))}
+                      </div>
+                      <textarea value={ratingText} onChange={e => setRatingText(e.target.value)} rows={3}
+                        placeholder="Write your review..."
+                        className="w-full bg-white border-2 border-slate-200 focus:border-brand-400 rounded-xl p-3 text-sm outline-none resize-none" />
+                      <div className="flex gap-3">
+                        <button onClick={rateTrip} disabled={ratingLoading}
+                          className="flex-1 bg-brand-500 text-white font-bold py-2.5 rounded-xl hover:bg-brand-600 disabled:opacity-50 text-sm">
+                          {ratingLoading ? 'Submitting...' : 'Submit Review'}
+                        </button>
+                        <button onClick={() => setShowRating(false)}
+                          className="px-5 bg-slate-100 text-slate-600 font-bold py-2.5 rounded-xl text-sm hover:bg-slate-200">Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'Completed' && ticketDetail?.is_rate === '1' && (
+                <div className="bg-green-50 rounded-xl p-4 border border-green-200 flex items-center gap-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <p className="font-bold text-green-700 text-sm">You've already rated this trip</p>
+                    <p className="text-xs text-green-600/70">Thank you for your feedback!</p>
+                  </div>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex gap-3 pt-2">

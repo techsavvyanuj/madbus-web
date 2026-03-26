@@ -33,6 +33,10 @@ export default function BookPage() {
   const [contactPhone, setContactPhone] = useState('')
   const [boardingPoint, setBoardingPoint] = useState('')
 
+  // Boarding/dropping points
+  const [pickupStops, setPickupStops] = useState<any[]>([])
+  const [dropStops, setDropStops] = useState<any[]>([])
+
   // Payment / coupon
   const [coupons, setCoupons] = useState<any[]>([])
   const [selectedCoupon, setSelectedCoupon] = useState<any>(null)
@@ -70,6 +74,24 @@ export default function BookPage() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
+
+    // Fetch boarding/dropping points
+    const savedBusData = sessionStorage.getItem('selected_bus')
+    if (savedBusData) {
+      const bd = JSON.parse(savedBusData)
+      if (bd.id_pickup_drop) {
+        fetch('/api/boarding_dropping_point.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: '0', id_pickup_drop: String(bd.id_pickup_drop) })
+        }).then(r => r.json()).then(d => {
+          if (d.Result === 'true') {
+            setPickupStops(d.PickUpStops || [])
+            setDropStops(d.DropStops || [])
+          }
+        }).catch(() => {})
+      }
+    }
   }, [busId, date])
 
   useEffect(() => {
@@ -408,13 +430,33 @@ export default function BookPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Boarding Point <span className="text-slate-400 normal-case font-normal">(optional)</span></label>
-                    <div className="relative">
-                      <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input type="text" value={boardingPoint} onChange={e => setBoardingPoint(e.target.value)}
-                        placeholder={`Default: ${bus?.boarding_city || 'Main stop'}`}
-                        className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 focus:border-brand-400 rounded-xl text-sm outline-none transition-colors" />
-                    </div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Boarding Point</label>
+                    {pickupStops.length > 0 ? (
+                      <div className="space-y-2">
+                        {pickupStops.map((ps, i) => (
+                          <div key={i}
+                            onClick={() => setBoardingPoint(ps.pick_place)}
+                            className={`border-2 rounded-xl p-3 cursor-pointer transition-all flex justify-between items-center
+                              ${boardingPoint === ps.pick_place ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:border-brand-200'}`}>
+                            <div className="flex items-center gap-3">
+                              <MapPin size={14} className="text-brand-500 flex-shrink-0" />
+                              <div>
+                                <p className="font-semibold text-sm text-slate-800">{ps.pick_place}</p>
+                                <p className="text-xs text-slate-400">{ps.pick_address} · {ps.pick_time}</p>
+                              </div>
+                            </div>
+                            {ps.pick_mobile && <span className="text-xs text-slate-400">📞 {ps.pick_mobile}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input type="text" value={boardingPoint} onChange={e => setBoardingPoint(e.target.value)}
+                          placeholder={`Default: ${bus?.boarding_city || 'Main stop'}`}
+                          className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 focus:border-brand-400 rounded-xl text-sm outline-none transition-colors" />
+                      </div>
+                    )}
                   </div>
                 </div>
 

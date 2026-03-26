@@ -214,16 +214,18 @@ function SearchPage() {
 
 function BusCard({ bus, onBook }: { bus: any; onBook: () => void }) {
   const [expanded, setExpanded] = useState(false)
-
-  const amenityIcons: Record<string, React.ReactNode> = {
-    WiFi: <Wifi size={12} />, Charging: <Plug size={12} />, Refreshments: <Coffee size={12} />, AC: <Wind size={12} />
-  }
+  const [activeTab, setActiveTab] = useState<'amenities'|'review'|'policy'>('amenities')
 
   const typeStr = `${bus.bus_ac == 1 ? 'AC' : 'Non-AC'} ${bus.is_sleeper == 1 ? 'Sleeper' : 'Seater'}`
   const ratingNum = parseFloat(bus.bus_rate || '0')
   const ratingStr = ratingNum.toFixed(1)
   const isTopRated = ratingNum >= 4.0
   const amenities = (bus.bus_facilities || []).map((f: any) => f.facilityname).filter(Boolean)
+
+  const amenityEmoji: Record<string,string> = {
+    WiFi: '📶', Charging: '🔌', Refreshments: '☕', AC: '❄️', Blanket: '🛏️', 
+    TV: '📺', 'First Aid': '🩺', 'Water Bottle': '💧', Pillow: '🛏️'
+  }
 
   // Format time (e.g., 20:00:00 -> 8:00 PM)
   const formatTime = (timeStr: string) => {
@@ -270,27 +272,85 @@ function BusCard({ bus, onBook }: { bus: any; onBook: () => void }) {
               </div>
             </div>
 
-            {/* Amenities */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {amenities.map((a: string, idx: number) => (
-                <span key={idx} className="flex items-center gap-1.5 text-[11px] text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-100">
-                  {amenityIcons[a] ?? null} {a}
-                </span>
+            {/* Tab trigger row */}
+            <div className="flex items-center gap-3 border-t border-slate-100 pt-3">
+              {(['amenities', 'review', 'policy'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => { setExpanded(true); setActiveTab(tab) }}
+                  className={`text-xs font-bold capitalize transition-colors ${
+                    expanded && activeTab === tab ? 'text-brand-600 underline underline-offset-2' : 'text-slate-400 hover:text-brand-500'
+                  }`}
+                >
+                  {tab === 'amenities' ? 'Amenities' : tab === 'review' ? 'Reviews' : 'Cancellation Policy'}
+                </button>
               ))}
               <button
                 onClick={() => setExpanded(!expanded)}
-                className="text-[11px] text-brand-500 font-semibold flex items-center gap-0.5 hover:underline"
+                className="ml-auto text-[11px] text-brand-500 font-semibold flex items-center gap-0.5 hover:underline"
               >
-                {expanded ? 'Less info' : 'More info'}
+                {expanded ? 'Less' : 'More'}
                 <ChevronDown size={12} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
               </button>
             </div>
 
             {expanded && (
-              <div className="mt-3 text-xs text-slate-500 bg-slate-50 rounded-xl p-4 leading-relaxed animate-fade-in border border-slate-100">
-                <strong className="text-slate-700">Bus No:</strong> {bus.bus_no} &nbsp;·&nbsp;
-                <strong className="text-slate-700">Cancellation:</strong> Checked by operator &nbsp;·&nbsp;
-                <strong className="text-slate-700">Reviews:</strong> {bus.total_review} verified reviews
+              <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 overflow-hidden animate-fade-in">
+                {/* Tab content */}
+                {activeTab === 'amenities' && (
+                  <div className="p-4">
+                    {amenities.length === 0 ? (
+                      <p className="text-xs text-slate-400">No amenities listed for this bus.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {amenities.map((a: string, idx: number) => (
+                          <span key={idx} className="flex items-center gap-1.5 text-[12px] text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-200 font-medium">
+                            <span>{amenityEmoji[a] ?? '✅'}</span> {a}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-4 text-xs text-slate-500">
+                      <span>🚌 Bus No: <strong className="text-slate-700">{bus.bus_no}</strong></span>
+                      <span>💺 {bus.left_seat} seats left</span>
+                    </div>
+                  </div>
+                )}
+                {activeTab === 'review' && (
+                  <div className="p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-14 h-14 rounded-xl bg-brand-500 flex flex-col items-center justify-center text-white">
+                        <span className="text-xl font-bold leading-none">{ratingStr}</span>
+                        <span className="text-[10px] opacity-80">/ 5.0</span>
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800">
+                          {ratingNum >= 4.5 ? 'Excellent' : ratingNum >= 4 ? 'Very Good' : ratingNum >= 3 ? 'Good' : 'Average'}
+                        </p>
+                        <p className="text-xs text-slate-400">{bus.total_review} verified reviews</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-400 italic">Reviews from passengers who travelled on this bus.</p>
+                  </div>
+                )}
+                {activeTab === 'policy' && (
+                  <div className="p-4 space-y-2 text-xs text-slate-600 leading-relaxed">
+                    <p className="font-bold text-slate-800 text-sm mb-2">Cancellation Policy</p>
+                    <div className="space-y-2">
+                      {[
+                        { time: 'More than 24 hrs before', refund: '75% refund', color: 'text-green-600' },
+                        { time: '12–24 hrs before', refund: '50% refund', color: 'text-yellow-600' },
+                        { time: 'Less than 12 hrs before', refund: 'No refund', color: 'text-red-500' },
+                      ].map((row, i) => (
+                        <div key={i} className="flex justify-between items-center bg-white rounded-lg px-3 py-2 border border-slate-100">
+                          <span className="text-slate-600">{row.time}</span>
+                          <span className={`font-bold ${row.color}`}>{row.refund}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-slate-400 pt-1">Cancellation charges may vary. Contact operator for exact policy.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

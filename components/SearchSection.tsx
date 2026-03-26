@@ -189,6 +189,23 @@ export default function SearchSection() {
                     className="w-full pl-9 pr-3 py-3.5 border-2 border-slate-200 focus:border-brand-400 rounded-xl text-sm font-semibold text-slate-800 outline-none transition-colors bg-slate-50/50 focus:bg-white"
                   />
                 </div>
+                {/* Quick date buttons */}
+                <div className="flex gap-2 mt-2">
+                  {[
+                    { label: 'Today', val: today },
+                    { label: 'Tomorrow', val: new Date(Date.now() + 86400000).toISOString().split('T')[0] },
+                    { label: 'Day After', val: new Date(Date.now() + 172800000).toISOString().split('T')[0] },
+                  ].map(d => (
+                    <button
+                      key={d.label}
+                      type="button"
+                      onClick={() => setDate(d.val)}
+                      className={`flex-1 text-[11px] font-bold py-1.5 rounded-lg border transition-all ${
+                        date === d.val ? 'bg-brand-500 text-white border-brand-500' : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-brand-300 hover:text-brand-600'
+                      }`}
+                    >{d.label}</button>
+                  ))}
+                </div>
                 {tripType === 'roundtrip' && (
                   <div className="relative mt-2">
                     <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-400 pointer-events-none" />

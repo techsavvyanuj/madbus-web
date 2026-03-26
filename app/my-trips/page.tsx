@@ -85,6 +85,10 @@ function TripsDashboard({ user }: { user: any }) {
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
   const [ticketDetail, setTicketDetail] = useState<any>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [ratingOpen, setRatingOpen] = useState(false)
+  const [ratingVal, setRatingVal] = useState(5)
+  const [ratingComment, setRatingComment] = useState('')
+  const [ratingSubmitting, setRatingSubmitting] = useState(false)
 
   useEffect(() => {
     fetchTrips(activeTab)
@@ -145,6 +149,27 @@ function TripsDashboard({ user }: { user: any }) {
         fetchTrips(activeTab)
         setSelectedTicket(null)
       }).catch(() => alert("Error cancelling!"))
+  }
+
+  function handleRate() {
+    if (!ticketDetail) return
+    setRatingSubmitting(true)
+    fetch('/api/u_rate_update.php', {
+      method: 'POST',
+      body: JSON.stringify({
+        uid: user.id || "0",
+        ticket_id: String(selectedTicket.ticket_id),
+        total_rate: String(ratingVal),
+        rate_text: ratingComment
+      })
+    })
+      .then(r => r.json())
+      .then(d => {
+        alert(d.ResponseMsg || "Rating updated!")
+        setRatingOpen(false)
+        openTicketDetail(selectedTicket) // Refresh
+      })
+      .finally(() => setRatingSubmitting(false))
   }
 
   const formatTime = (t: string) => {
@@ -320,9 +345,50 @@ function TripsDashboard({ user }: { user: any }) {
                     Cancel Ticket
                   </button>
                 )}
+                {activeTab === 'Completed' && t.is_rate === "0" && (
+                  <button
+                    onClick={() => setRatingOpen(true)}
+                    className="flex-1 h-12 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition-colors">
+                    Rate Trip
+                  </button>
+                )}
                 <button onClick={() => setSelectedTicket(null)}
                   className="flex-1 h-12 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
                   Back to Trips
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rating Modal */}
+        {ratingOpen && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+            <div className="bg-white rounded-3xl p-8 max-w-sm w-full animate-scale-in border border-slate-200 shadow-2xl">
+              <h3 className="text-xl font-bold text-slate-800 mb-6 text-center">Rate your journey 🚌</h3>
+              
+              <div className="flex justify-center gap-2 mb-8">
+                {[1, 2, 3, 4, 5].map(v => (
+                  <button key={v} onClick={() => setRatingVal(v)} className={`text-3xl transition-all ${v <= ratingVal ? 'scale-110 drop-shadow-md' : 'opacity-30'}`}>
+                    ⭐
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                placeholder="Write a comment (optional)..."
+                value={ratingComment}
+                onChange={e => setRatingComment(e.target.value)}
+                className="w-full h-24 p-4 border-2 border-slate-100 focus:border-brand-400 rounded-2xl text-sm outline-none transition-all resize-none mb-6 font-medium"
+              />
+
+              <div className="flex gap-3">
+                <button onClick={() => setRatingOpen(false)} className="flex-1 py-3.5 text-slate-400 font-bold">Cancel</button>
+                <button
+                  disabled={ratingSubmitting}
+                  onClick={handleRate}
+                  className="flex-1 bg-brand-500 text-white font-bold py-3.5 rounded-2xl shadow-brand disabled:opacity-50">
+                  {ratingSubmitting ? '...' : 'Submit'}
                 </button>
               </div>
             </div>
